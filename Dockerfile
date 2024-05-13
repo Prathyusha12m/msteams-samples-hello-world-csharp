@@ -1,15 +1,22 @@
-FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build-env
-WORKDIR /App
+# Start with the .NET SDK for building the app
+FROM mcr.microsoft.com/dotnet/sdk:7.0 AS build
+# Work within a folder named `/source`
+WORKDIR /source
 
-# Copy everything
-COPY . ./
-# Restore as distinct layers
-RUN dotnet restore
-# Build and publish a release
-RUN dotnet publish -c Release -o out
+# Copy everything in this project and build app
+COPY . ./dotnetcore-docs-hello-world/
+WORKDIR /source/dotnetcore-docs-hello-world
+RUN dotnet publish -c release -o /app 
 
-# Build runtime image
-FROM mcr.microsoft.com/dotnet/aspnet:8.0
-WORKDIR /App
-COPY --from=build-env /App/out .
-ENTRYPOINT ["dotnet", "DotNet.Docker.dll"]
+# final stage/image
+FROM mcr.microsoft.com/dotnet/aspnet:7.0
+WORKDIR /app
+COPY --from=build /app ./
+
+# Expose port 80
+# This is important in order for the Azure App Service to pick up the app
+ENV PORT 80
+EXPOSE 80
+
+# Start the app
+ENTRYPOINT ["dotnet", "dotnetcoresample.dll"]
